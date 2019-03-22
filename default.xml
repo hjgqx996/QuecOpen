@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+   <remote name="QuecOpen"  fetch="git://github.com/quectel-wireless-solutions/" review="null" />
+   <default revision="master" remote="master" />
+   <project path="QuecOpen" name="QuecOpen" />
+</manifest>
