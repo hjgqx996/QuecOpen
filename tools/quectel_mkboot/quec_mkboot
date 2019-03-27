@@ -1,0 +1,119 @@
+#!/bin/sh
+
+########################################################
+#  Copyright (C) 2016-2020 Quectel Wireless Co.,Ltd. 
+#  Quectel Wireless Proprietary and Confidential.
+#
+#  Created by Gale
+#  Modify: by dawn 2018-11-8 for make kernel by mkbootimg
+#
+########################################################
+
+img2dts()
+{
+	echo "deplicated..."
+}
+
+dts2img()
+{
+	echo "deplicated..."
+}
+
+dtb2img()
+{
+	[ -f $dtb -a -f $kernel ] || usage
+	./mkqcomdt -i $dtb -o dt.img
+
+	#set -x
+
+	if [ ${ramdisk}x = x ]
+	then
+		./mkbootimg --kernel $kernel  \
+		    --ramdisk /dev/null \
+		    --cmdline "${KERNEL_CMD_PARAMS}" \
+		    --pagesize ${PAGE_SIZE} \
+		    --base ${KERNEL_BASE} \
+		    --dt dt.img \
+		    --tags-addr ${KERNEL_TAGS_OFFSET} \
+		    --output $output_bootimg
+	else
+		./mkbootimg --kernel $kernel \
+		    --ramdisk $ramdisk  \
+		    --cmdline "${KERNEL_CMD_PARAMS}"  \
+		    --pagesize ${PAGE_SIZE}  \
+		    --base ${KERNEL_BASE}  \
+		    --ramdisk_offset ${RAMDISK_OFFSET} \
+		    --dt dt.img  \
+		    --tags-addr ${KERNEL_TAGS_OFFSET} \
+		    --output $output_bootimg
+	fi
+	signature $output_bootimg
+	mkdir -p target
+	mv boot_new_sign.img target/mdm9607-perf-boot.img
+	echo "############# generate mdm9607-perf-boot.img into target/ directory ###############"
+}
+
+
+#Signature for the new boot.img;        by gale
+#NOTICE: the bootloader require to check signature of boot.img
+#and there are two methods to solve, however the second is better.
+#       1.remove the check process on bootloader;
+#       2.signaure for the new boot.img.
+signature()
+{
+	local TARGET_SHA_TYPE=sha256
+	local PRODUCT_PRIVATE_KEY=quectel.key
+ 	local BOARD_KERNEL_PAGESIZE=${PAGE_SIZE}
+
+	echo "############## start: signature for new boot.img #######"
+	openssl dgst -$TARGET_SHA_TYPE -binary $1 > $1.$TARGET_SHA_TYPE
+	openssl rsautl -sign -in $1.$TARGET_SHA_TYPE -inkey $PRODUCT_PRIVATE_KEY -out $1.sig
+	dd if=/dev/zero of=$1.sig.padded bs=$BOARD_KERNEL_PAGESIZE count=1
+	dd if=$1.sig of=$1.sig.padded conv=notrunc
+	cat $1 $1.sig.padded > boot_new_sign.img
+	rm $1 $1.sig $1.$TARGET_SHA_TYPE $1.sig.padded
+	echo "############## end: signature for new boot.img #######"
+}
+
+clean()
+{
+	rm -rf *.img *.dts *.dtb zImage target
+}
+
+usage()
+{
+cat << EOF
+Usage:
+	./quec_mkboot dtb2img  dtb_file zimage
+	./quec_mkboot dtb2img  dtb_file zimage  ramdisk
+	./quec_mkboot clean all
+EOF
+exit
+}
+
+
+
+# start here
+[ $# -ge 2 ] || usage
+
+arg0=$0
+arg1=$1
+
+dts=$2
+dtimg=$2
+dtb=$2
+
+kernel=$3
+ramdisk=$4
+
+output_bootimg="unauth_boot.img"
+
+
+case $arg1 in
+	img2dts | dts2img | dtb2img | clean)
+		$arg1
+		;;
+	*)
+		usage
+		;;
+esac

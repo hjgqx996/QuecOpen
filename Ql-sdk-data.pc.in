@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: quectel-data-openAPI
+Description: quectel data openAPI package
+Version: @VERSION@
+Libs: -L${libdir} -lquectel_data_wwanAPI
+Cflags: -I${includedir}/quectel-data-openAPI
